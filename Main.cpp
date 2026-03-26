@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 using namespace std;
 
 
@@ -8,6 +9,7 @@ class Carta {
     public:
         int numero;
         bool jugada;
+
         Carta();
         Carta(int numero);
         void Mostrar();
@@ -27,21 +29,19 @@ void Carta::Mostrar() {
     cout << "[ " << numero << " ]";
 }
 
+// clase mazo
 
 class Mazo {
     public:
         Carta cartas[100];
         int total;
-        int indiceActual; 
+
         Mazo();
         void Revolver();
-        void Mostrar();
-        Carta* Repartir(int n); 
 };
 
 Mazo::Mazo() {
     this->total = 100;
-    this->indiceActual = 0;
     for (int i = 0; i < 100; i++) {
         cartas[i] = Carta(i + 1);
     }
@@ -54,27 +54,6 @@ void Mazo::Revolver() {
         cartas[i] = cartas[j];
         cartas[j] = temp;
     }
-    indiceActual = 0; 
-}
-
-void Mazo::Mostrar() {
-    for (int i = 0; i < total; i++) {
-        cartas[i].Mostrar();
-        cout << " ";
-    }
-    cout << endl;
-}
-
-
-Carta* Mazo::Repartir(int n) {
-    Carta* repartidas = new Carta[n];
-    for (int i = 0; i < n; i++) {
-        if (indiceActual < total) {
-            repartidas[i] = cartas[indiceActual];
-            indiceActual++;
-        }
-    }
-    return repartidas;
 }
 
 
@@ -82,10 +61,12 @@ class Jugador {
     public:
         Carta mano[12];
         int numCartas;
+
         Jugador();
         void RecibirCarta(Carta c);
         void MostrarMano();
         Carta JugarCarta(int i);
+        void DescartarMenores(int n);
 };
 
 Jugador::Jugador() {
@@ -93,14 +74,12 @@ Jugador::Jugador() {
 }
 
 void Jugador::RecibirCarta(Carta c) {
-    if (numCartas < 12) {
-        this->mano[numCartas] = c;
-        this->numCartas++;
-    }
+    this->mano[numCartas] = c;
+    this->numCartas++;
 }
 
 void Jugador::MostrarMano() {
-    cout << "Mano: ";
+    cout << "Tu mano: ";
     for (int i = 0; i < numCartas; i++) {
         cout << i + 1 << ":";
         mano[i].Mostrar();
@@ -111,7 +90,6 @@ void Jugador::MostrarMano() {
 
 Carta Jugador::JugarCarta(int i) {
     Carta c = mano[i];
-    
     for (int j = i; j < numCartas - 1; j++) {
         mano[j] = mano[j + 1];
     }
@@ -119,168 +97,195 @@ Carta Jugador::JugarCarta(int i) {
     return c;
 }
 
+void Jugador::DescartarMenores(int n) {
+    int i = 0;
+    while (i < numCartas) {
+        if (mano[i].numero < n) {
+            for (int j = i; j < numCartas - 1; j++) {
+                mano[j] = mano[j + 1];
+            }
+            numCartas--;
+        } else {
+            i++;
+        }
+    }
+}
+
 
 class Game {
     public:
-        Jugador* jugadores[2];
-        Mazo* mazo;
+        Jugador jugadores[2];
+        Mazo mazo;
         int vidas;
         int nivel;
+        int mesaTop;
 
         Game();
-        ~Game();
         void IniciarNivel();
         bool VerificarCarta(int n);
-        void MostrarEstado();
+        void MostrarMesa();
+        void GuardarPartida();
+        bool CargarPartida();
+        void Jugar();
 };
 
 Game::Game() {
     srand(time(0));
-    mazo = new Mazo();
-    jugadores[0] = new Jugador();
-    jugadores[1] = new Jugador();
-    vidas = 3;
-    nivel = 1;
+    this->vidas = 3;
+    this->nivel = 1;
+    this->mesaTop = 0;
 }
 
-Game::~Game() {
-    delete mazo;
-    delete jugadores[0];
-    delete jugadores[1];
+void Game::GuardarPartida() {
+    ofstream archivo("partida.txt");
+    archivo << nivel << endl;
+    archivo << vidas << endl;
+    archivo.close();
+    cout << "Partida guardada!" << endl;
 }
 
+bool Game::CargarPartida() {
+    ifstream archivo("partida.txt");
+    if (!archivo) {
+        return false;
+    }
+    archivo >> nivel;
+    archivo >> vidas;
+    archivo.close();
+    return true;
+}
 
 void Game::IniciarNivel() {
-    cout << "\n========== NIVEL " << nivel << " ==========" << endl;
-    cout << "Vidas restantes: " << vidas << endl;
+    jugadores[0].numCartas = 0;
+    jugadores[1].numCartas = 0;
+    mesaTop = 0;
 
-    
-    jugadores[0]->numCartas = 0;
-    jugadores[1]->numCartas = 0;
+    mazo.Revolver();
 
-    mazo->Revolver();
-
-    
-    int cartasPorJugador = nivel + 2; 
-    if (cartasPorJugador > 12) cartasPorJugador = 12;
-
-    Carta* cartasJ1 = mazo->Repartir(cartasPorJugador);
-    Carta* cartasJ2 = mazo->Repartir(cartasPorJugador);
-
-    for (int i = 0; i < cartasPorJugador; i++) {
-        jugadores[0]->RecibirCarta(cartasJ1[i]);
-        jugadores[1]->RecibirCarta(cartasJ2[i]);
+    for (int i = 0; i < nivel; i++) {
+        jugadores[0].RecibirCarta(mazo.cartas[i]);
+        jugadores[1].RecibirCarta(mazo.cartas[i + nivel]);
     }
 
-    delete[] cartasJ1;
-    delete[] cartasJ2;
-
-    cout << "Cada jugador recibio " << cartasPorJugador << " cartas." << endl;
+    cout << "\n========== NIVEL " << nivel << " ==========" << endl;
+    cout << "Vidas: " << vidas << endl;
+    cout << "Cada jugador recibe " << nivel << " carta(s)." << endl;
+    cout << "Pongan la mano sobre la mesa..." << endl;
+    cout << "Presiona Enter cuando esten listos." << endl;
+    cin.ignore();
+    cin.get();
 }
-
 
 bool Game::VerificarCarta(int n) {
-    
     for (int j = 0; j < 2; j++) {
-        for (int i = 0; i < jugadores[j]->numCartas; i++) {
-            if (jugadores[j]->mano[i].numero > n) {
-                return false; 
+        for (int i = 0; i < jugadores[j].numCartas; i++) {
+            if (jugadores[j].mano[i].numero < n) {
+                return false;
             }
         }
     }
-    return true; 
+    return true;
 }
 
-void Game::MostrarEstado() {
-    cout << "\n--- Estado del juego ---" << endl;
+void Game::MostrarMesa() {
+    cout << "\n--- Mesa ---" << endl;
     cout << "Nivel: " << nivel << " | Vidas: " << vidas << endl;
-    cout << "Jugador 1 - ";
-    jugadores[0]->MostrarMano();
-    cout << "Jugador 2 - ";
-    jugadores[1]->MostrarMano();
-    cout << "------------------------" << endl;
+    if (mesaTop == 0) {
+        cout << "Mesa vacia" << endl;
+    } else {
+        cout << "Ultima carta: [ " << mesaTop << " ]" << endl;
+    }
+    cout << "------------" << endl;
 }
 
+void Game::Jugar() {
+    while (vidas > 0 && nivel <= 5) {
+        IniciarNivel();
+
+        while (jugadores[0].numCartas > 0 || jugadores[1].numCartas > 0) {
+            MostrarMesa();
+
+            int quien = 0;
+            cout << "¿Quien juega? (1 o 2): ";
+            cin >> quien;
+            while (quien < 1 || quien > 2) {
+                cout << "Opcion invalida (1 o 2): ";
+                cin >> quien;
+            }
+
+            Jugador* j = &jugadores[quien - 1];
+            if (j->numCartas == 0) {
+                cout << "Jugador " << quien << " no tiene cartas!" << endl;
+                continue;
+            }
+
+            cout << "Jugador " << quien << ", ";
+            j->MostrarMano();
+
+            int opcion = 0;
+            cout << "Elige carta (1-" << j->numCartas << "): ";
+            cin >> opcion;
+            while (opcion < 1 || opcion > j->numCartas) {
+                cout << "Opcion invalida. Elige de 1 a " << j->numCartas << ": ";
+                cin >> opcion;
+            }
+
+            Carta c = j->JugarCarta(opcion - 1);
+            cout << "Jugador " << quien << " jugo: ";
+            c.Mostrar();
+            cout << endl;
+
+            if (!VerificarCarta(c.numero)) {
+                cout << "!! Habia cartas menores sin jugar. Pierden una vida !!" << endl;
+                jugadores[0].DescartarMenores(c.numero);
+                jugadores[1].DescartarMenores(c.numero);
+                vidas--;
+                if (vidas <= 0) {
+                    cout << "\nSin vidas. Game over!" << endl;
+                    return;
+                }
+            } else {
+                cout << "Bien jugado!" << endl;
+                mesaTop = c.numero;
+            }
+        }
+
+        cout << "\n*** Nivel " << nivel << " completado! ***" << endl;
+        GuardarPartida();
+        nivel++;
+
+        if (nivel <= 5) {
+            cout << "Presiona Enter para el siguiente nivel...";
+            cin.ignore();
+            cin.get();
+        }
+    }
+
+    if (nivel > 5) {
+        cout << "\nGanaron! Completaron todos los niveles!" << endl;
+    }
+}
 
 int main() {
-    cout << "=============================" << endl;
-    cout << "   JUEGO DE CARTAS en C++    " << endl;
-    cout << "=============================" << endl;
+    cout << "Bienvenidos a The Mind!" << endl;
+    cout << "Buena suerte :)" << endl;
+    
 
     Game game;
-    bool jugando = true;
 
-    while (jugando && game.vidas > 0 && game.nivel <= 5) {
-        game.IniciarNivel();
-        game.MostrarEstado();
+    char opcion;
+    cout << "¿Desea continuar partida guardada? (s/n): ";
+    cin >> opcion;
 
-        
-        while (game.jugadores[0]->numCartas > 0 && game.jugadores[1]->numCartas > 0) {
-            cout << "\n--- Turno ---" << endl;
-
-            
-            int opcion1 = 0;
-            cout << "Jugador 1, elige una carta (1-" << game.jugadores[0]->numCartas << "): ";
-            cin >> opcion1;
-            while (opcion1 < 1 || opcion1 > game.jugadores[0]->numCartas) {
-                cout << "Opcion invalida. Elige de 1 a " << game.jugadores[0]->numCartas << ": ";
-                cin >> opcion1;
-            }
-            Carta c1 = game.jugadores[0]->JugarCarta(opcion1 - 1);
-            cout << "Jugador 1 jugo: ";
-            c1.Mostrar();
-            cout << endl;
-
-            
-            int opcion2 = 0;
-            cout << "Jugador 2, elige una carta (1-" << game.jugadores[1]->numCartas << "): ";
-            cin >> opcion2;
-            while (opcion2 < 1 || opcion2 > game.jugadores[1]->numCartas) {
-                cout << "Opcion invalida. Elige de 1 a " << game.jugadores[1]->numCartas << ": ";
-                cin >> opcion2;
-            }
-            Carta c2 = game.jugadores[1]->JugarCarta(opcion2 - 1);
-            cout << "Jugador 2 jugo: ";
-            c2.Mostrar();
-            cout << endl;
-
-           
-            if (c1.numero > c2.numero) {
-                cout << ">> Jugador 1 gana esta ronda!" << endl;
-            } else if (c2.numero > c1.numero) {
-                cout << ">> Jugador 2 gana esta ronda!" << endl;
-            } else {
-                cout << ">> Empate en esta ronda!" << endl;
-                game.vidas--;
-                cout << "Pierden una vida. Vidas restantes: " << game.vidas << endl;
-            }
-
-            if (game.vidas <= 0) {
-                cout << "\nSin vidas. Fin del juego!" << endl;
-                jugando = false;
-                break;
-            }
-        }
-
-        if (jugando) {
-            cout << "\n** Nivel " << game.nivel << " completado! **" << endl;
-            game.nivel++;
-
-            if (game.nivel <= 5) {
-                cout << "Presiona Enter para continuar al siguiente nivel...";
-                cin.ignore();
-                cin.get();
-            }
+    if (opcion == 's' || opcion == 'S') {
+        if (game.CargarPartida()) {
+            cout << "Partida cargada! Nivel: " << game.nivel << " | Vidas: " << game.vidas << endl;
+        } else {
+            cout << "No hay partida guardada. Iniciando nueva partida..." << endl;
         }
     }
 
-    if (game.nivel > 5) {
-        cout << "\n=============================";
-        cout << "\n  Ganastes todos los niveles!" << endl;
-    } else {
-        cout << "\n=============================";
-        cout << "\n  Fin del fuego llegastes al nivel " << game.nivel << endl;
-    }
+    game.Jugar();
 
     return 0;
 }
