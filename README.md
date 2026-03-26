@@ -39,3 +39,5 @@ Implementación del juego de cartas The Mind en C++ para consola.
 4. El objetivo es jugar las cartas de menor a mayor
 5. Si alguien juega una carta y había una menor sin jugar, pierden una vida
 6. Completen los 5 niveles para ganar
+
+<img width="927" height="569" alt="image" src="https://github.com/user-attachments/assets/a20cb338-906c-479d-91c8-dc47f7f787e0" />
