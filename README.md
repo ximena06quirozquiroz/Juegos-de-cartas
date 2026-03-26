@@ -40,4 +40,13 @@ Implementación del juego de cartas The Mind en C++ para consola.
 5. Si alguien juega una carta y había una menor sin jugar, pierden una vida
 6. Completen los 5 niveles para ganar
 
-<img width="927" height="569" alt="image" src="https://github.com/user-attachments/assets/a20cb338-906c-479d-91c8-dc47f7f787e0" />
+Diagrama UML
+
+<img width="517" height="401" alt="Captura de pantalla 2026-03-26 175324" src="https://github.com/user-attachments/assets/eee1b354-a422-46b9-9406-fb43e78d001e" />
+
+Pantallazo de la consola
+
+<img width="494" height="474" alt="image" src="https://github.com/user-attachments/assets/5b44d58b-d63d-41e9-9f96-0e808cd33bcf" />
+
+
+
